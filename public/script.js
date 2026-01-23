@@ -41,14 +41,16 @@ async function loadCommunes() {
         const response = await fetch('./communes.json');
         const communes = await response.json();
 
-        communes.sort((a, b) => a.Commune.localeCompare(b.Commune));
+        // Sort alphabetically by name
+        communes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         communeSelect.innerHTML = '<option value="" disabled selected>Choisir une commune...</option>';
         communes.forEach(c => {
             const option = document.createElement('option');
-            option.value = c.Code_Commune;
-            option.textContent = c.Commune;
-            option.dataset.name = c.Commune;
+            // communes.json uses "code" and "name" keys
+            option.value = c.code;
+            option.textContent = c.name;
+            option.dataset.name = c.name;
             communeSelect.appendChild(option);
         });
     } catch (err) {
