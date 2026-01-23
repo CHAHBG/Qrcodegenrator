@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Générateur QR PROCASEF - Dashboard</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+
+<body>
+
+    <div class="dashboard-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-box">QR</div>
+                <div>
+                    <h2>PROCASEF</h2>
+                    <span>Générateur</span>
+                </div>
+            </div>
+
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    Studio de Génération
+                </a>
+                <a href="#" class="nav-item">
+                    <i class="fa-solid fa-clock-rotate-left"></i>
+                    Historique
+                </a>
+            </nav>
+
+            <div class="sidebar-footer">
+                <button id="exportHistoryBtn" class="btn-secondary small">
+                    <i class="fa-solid fa-download"></i> Exporter CSV
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <h1 id="pageTitle">Studio de Génération</h1>
+                <div class="user-profile">
+                    <span class="badge">BETA V2.0</span>
+                </div>
+            </header>
+
+            <div class="content-wrapper">
+
+                <!-- Generation Card -->
+                <div class="studio-card">
+                    <div class="card-header">
+                        <h3>Configuration</h3>
+                    </div>
+
+                    <form id="generateForm" class="studio-form">
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-map-location-dot"></i> Commune</label>
+                                <select id="communeSelect" required>
+                                    <option value="" disabled selected>Choisir...</option>
+                                    <!-- Populated by JS -->
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-play"></i> Début Intervalle</label>
+                                <input type="number" id="intervalStart" placeholder="ex: 70000" min="1" required>
+                            </div>
+
+                            <div class="form-group">
+                                <label><i class="fa-solid fa-stop"></i> Fin Intervalle</label>
+                                <input type="number" id="intervalEnd" placeholder="ex: 75000" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="mode-selector">
+                            <label class="mode-option active">
+                                <input type="radio" name="mode" value="individual" checked>
+                                <div class="option-content">
+                                    <i class="fa-solid fa-images"></i>
+                                    <div>
+                                        <strong>Individuel (ZIP)</strong>
+                                        <small>Images PNG séparées</small>
+                                    </div>
+                                </div>
+                            </label>
+
+                            <label class="mode-option">
+                                <input type="radio" name="mode" value="print">
+                                <div class="option-content">
+                                    <i class="fa-solid fa-file-pdf"></i>
+                                    <div>
+                                        <strong>Impression (PDF)</strong>
+                                        <small>Planche A4 prête à imprimer</small>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+
+                        <div class="actions">
+                            <button type="submit" id="generateBtn" class="btn-primary large">
+                                <i class="fa-solid fa-bolt"></i> Lancer la Génération
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Live Progress Section (Hidden by default) -->
+                <div id="progressSection" class="progress-section hidden">
+                    <div class="progress-header">
+                        <h4><i class="fa-solid fa-spinner fa-spin"></i> Génération en cours...</h4>
+                        <span id="progressCount">0 / 0</span>
+                    </div>
+                    <div class="progress-track">
+                        <div id="progressBar" class="progress-fill" style="width: 0%"></div>
+                    </div>
+                    <div id="progressStatus" class="progress-status">Initialisation...</div>
+                </div>
+
+                <!-- Result Section (Hidden by default) -->
+                <div id="resultSection" class="result-section hidden">
+                    <div class="success-banner">
+                        <div class="icon-circle"><i class="fa-solid fa-check"></i></div>
+                        <div class="banner-text">
+                            <h4>Génération Terminée !</h4>
+                            <p>Vos fichiers sont prêts à être téléchargés.</p>
+                        </div>
+                        <button id="downloadBtn" class="btn-download">
+                            <i class="fa-solid fa-cloud-arrow-down"></i> Télécharger Maintenant
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Recent History Preview -->
+                <div class="history-preview">
+                    <h3>Historique Récent</h3>
+                    <div class="table-container">
+                        <table id="historyTable">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Commune</th>
+                                    <th>Intervalle</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Hidden Container for generating QR codes -->
+    <div id="qr-hidden-container" style="display:none;"></div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>

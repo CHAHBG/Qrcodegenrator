@@ -1,0 +1,34 @@
+[
+  {
+    "data": "1312020170000",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\DIMBOLI_70000_70001\\1312020170000.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "DIMBOLI",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "1312020170001",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\DIMBOLI_70000_70001\\1312020170001.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "DIMBOLI",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  }
+]

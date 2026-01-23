@@ -1,0 +1,98 @@
+[
+  {
+    "data": "05320101600",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101600.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "05320101601",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101601.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "05320101602",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101602.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "05320101603",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101603.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "05320101604",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101604.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  },
+  {
+    "data": "05320101605",
+    "out": "C:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\QR_code\\Qr_code generator\\WebQRCodeGenerator\\output\\BALA_600_605\\05320101605.png",
+    "options": {
+      "preset": "rounded",
+      "outputMode": "card",
+      "communeName": "BALA",
+      "topLogoPath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\Banque Mondiale.jpg",
+      "imagePath": "c:\\Users\\ASUS\\Documents\\Procasef_BETPLUS\\Application\\Qr_code generator\\Qr_code generator\\node_qr_generator\\Img\\BETPLUSAUDETAG.jpg",
+      "cardWidth": 800,
+      "cardHeight": 1100,
+      "rasterize": true,
+      "onlyPng": true,
+      "centerImageInsideQR": true
+    }
+  }
+]
