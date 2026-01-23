@@ -11,8 +11,8 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- Icons -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 
     <!-- Styles -->
     <link rel="stylesheet" href="style.css">
@@ -39,7 +39,7 @@
 
             <div class="nav-actions">
                 <button id="exportHistoryBtn" class="btn-nav">
-                    <i class="fa-solid fa-download"></i> Exporter Historique
+                    <i class="bi bi-download"></i> Exporter Historique
                 </button>
             </div>
         </div>
@@ -58,7 +58,7 @@
             <form id="generateForm" class="studio-form">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label><i class="fa-solid fa-map-location-dot"></i> Commune</label>
+                        <label><i class="bi bi-geo-alt"></i> Commune</label>
                         <select id="communeSelect" required>
                             <option value="" disabled selected>Choisir...</option>
                             <!-- Populated by JS -->
@@ -66,12 +66,12 @@
                     </div>
 
                     <div class="form-group">
-                        <label><i class="fa-solid fa-play"></i> Début</label>
+                        <label><i class="bi bi-arrow-right-circle"></i> Début</label>
                         <input type="number" id="intervalStart" placeholder="ex: 70000" min="1" required>
                     </div>
 
                     <div class="form-group">
-                        <label><i class="fa-solid fa-stop"></i> Fin</label>
+                        <label><i class="bi bi-arrow-left-circle"></i> Fin</label>
                         <input type="number" id="intervalEnd" placeholder="ex: 75000" min="1" required>
                     </div>
                 </div>
@@ -80,7 +80,7 @@
                     <label class="mode-option active">
                         <input type="radio" name="mode" value="individual" checked>
                         <div class="option-content">
-                            <i class="fa-solid fa-images"></i>
+                            <i class="bi bi-images"></i>
                             <div>
                                 <strong>Individuel (ZIP)</strong>
                                 <small>Images PNG séparées</small>
@@ -91,7 +91,7 @@
                     <label class="mode-option">
                         <input type="radio" name="mode" value="print">
                         <div class="option-content">
-                            <i class="fa-solid fa-file-pdf"></i>
+                            <i class="bi bi-file-earmark-pdf"></i>
                             <div>
                                 <strong>Impression (PDF)</strong>
                                 <small>Planche A4 prête à imprimer</small>
@@ -102,7 +102,7 @@
 
                 <div class="actions">
                     <button type="submit" id="generateBtn" class="btn-primary large">
-                        <i class="fa-solid fa-bolt"></i> Lancer la Génération
+                        <i class="bi bi-lightning-charge-fill"></i> Lancer la Génération
                     </button>
                 </div>
             </form>
@@ -111,7 +111,7 @@
         <!-- Live Progress Section (Hidden by default) -->
         <div id="progressSection" class="progress-section hidden">
             <div class="progress-header">
-                <h4><i class="fa-solid fa-spinner fa-spin"></i> Génération en cours...</h4>
+                <h4><i class="bi bi-arrow-repeat spin"></i> Génération en cours...</h4>
                 <span id="progressCount">0 / 0</span>
             </div>
             <div class="progress-track">
@@ -123,13 +123,13 @@
         <!-- Result Section (Hidden by default) -->
         <div id="resultSection" class="result-section hidden">
             <div class="success-banner">
-                <div class="icon-circle"><i class="fa-solid fa-check"></i></div>
+                <div class="icon-circle"><i class="bi bi-check-lg"></i></div>
                 <div class="banner-text">
                     <h4>Génération Terminée !</h4>
                     <p>Vos fichiers sont prêts à être téléchargés.</p>
                 </div>
                 <button id="downloadBtn" class="btn-download">
-                    <i class="fa-solid fa-cloud-arrow-down"></i> Télécharger Maintenant
+                    <i class="bi bi-cloud-arrow-down-fill"></i> Télécharger Maintenant
                 </button>
             </div>
         </div>
@@ -137,7 +137,7 @@
         <!-- Recent History -->
         <div class="history-section">
             <div class="section-title">
-                <h3><i class="fa-solid fa-clock-rotate-left"></i> Historique Récent</h3>
+                <h3><i class="bi bi-clock-history"></i> Historique Récent</h3>
             </div>
             <div class="table-container">
                 <table id="historyTable">
