@@ -10,15 +10,28 @@ const progressStatus = document.getElementById('progressStatus');
 const historyTable = document.getElementById('historyTable').querySelector('tbody');
 const downloadBtn = document.getElementById('downloadBtn');
 const qrContainer = document.getElementById('qr-hidden-container');
+const syncStatus = document.getElementById('syncStatus');
 
 // State
 let isGenerating = false;
 let currentDownloadUrl = null;
 let currentDownloadName = '';
 
+// Wait for Firebase to be ready
+function waitForFirebase() {
+    return new Promise((resolve) => {
+        if (window.firebaseReady) {
+            resolve();
+        } else {
+            window.addEventListener('firebase-ready', resolve);
+        }
+    });
+}
+
 // Load Data on Init
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     loadCommunes();
+    await waitForFirebase();
     loadHistory();
 });
 
@@ -28,46 +41,61 @@ async function loadCommunes() {
         const response = await fetch('./communes.json');
         const communes = await response.json();
 
-        // Sort alphabetically
         communes.sort((a, b) => a.Commune.localeCompare(b.Commune));
 
         communeSelect.innerHTML = '<option value="" disabled selected>Choisir une commune...</option>';
         communes.forEach(c => {
             const option = document.createElement('option');
-            // Assuming structure is { "Code_Commune": "...", "Commune": "..." }
             option.value = c.Code_Commune;
             option.textContent = c.Commune;
-            option.dataset.name = c.Commune; // Store name for display
+            option.dataset.name = c.Commune;
             communeSelect.appendChild(option);
         });
     } catch (err) {
         console.error("Error loading communes:", err);
-        // Fallback for demo if file missing or CORS issue locally without server
         if (window.location.protocol === 'file:') {
-            alert("Mode local (fichier): Les communes ne peuvent pas être chargées dynamiquement sans serveur web local. Veuillez utiliser 'http-server' ou VS Code Live Server.");
+            alert("Mode local: Veuillez utiliser un serveur web (http-server ou Live Server).");
         }
     }
 }
 
-// 2. History Management (LocalStorage)
-function getHistory() {
-    const history = localStorage.getItem('qr_history');
-    return history ? JSON.parse(history) : [];
+// 2. History Management (Firebase Firestore)
+async function getHistory() {
+    try {
+        const db = window.firebaseDb;
+        const q = window.firebaseQuery(
+            window.firebaseCollection(db, 'intervals'),
+            window.firebaseOrderBy('date', 'desc'),
+            window.firebaseLimit(50)
+        );
+        const snapshot = await window.firebaseGetDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+        console.error("Error fetching history from Firestore:", err);
+        return [];
+    }
 }
 
-function saveToHistory(record) {
-    const history = getHistory();
-    history.unshift(record); // Add to top
-    localStorage.setItem('qr_history', JSON.stringify(history));
-    loadHistory();
+async function saveToHistory(record) {
+    try {
+        const db = window.firebaseDb;
+        await window.firebaseAddDoc(window.firebaseCollection(db, 'intervals'), record);
+        updateSyncStatus('saved');
+        loadHistory();
+    } catch (err) {
+        console.error("Error saving to Firestore:", err);
+        updateSyncStatus('error');
+    }
 }
 
-function loadHistory() {
-    const history = getHistory();
+async function loadHistory() {
+    updateSyncStatus('loading');
+    const history = await getHistory();
     historyTable.innerHTML = '';
 
     if (history.length === 0) {
         historyTable.innerHTML = '<tr><td colspan="5" style="text-align:center">Aucune génération récente</td></tr>';
+        updateSyncStatus('synced');
         return;
     }
 
@@ -82,26 +110,56 @@ function loadHistory() {
         `;
         historyTable.appendChild(row);
     });
+    updateSyncStatus('synced');
 }
 
-function checkDuplicate(communeCode, start, end) {
-    const history = getHistory();
-    // Filter history for same commune
-    const conflicts = history.filter(h => h.communeCode === communeCode);
+async function checkDuplicate(communeCode, start, end) {
+    try {
+        const db = window.firebaseDb;
+        const q = window.firebaseQuery(
+            window.firebaseCollection(db, 'intervals'),
+            window.firebaseWhere('communeCode', '==', communeCode)
+        );
+        const snapshot = await window.firebaseGetDocs(q);
+        const records = snapshot.docs.map(doc => doc.data());
 
-    for (let record of conflicts) {
-        // Check for overlap
-        // Overlap if (StartA <= EndB) and (EndA >= StartB)
-        if (start <= record.end && end >= record.start) {
-            return `Conflit avec l'intervalle ${record.start}-${record.end} (généré le ${new Date(record.date).toLocaleDateString()})`;
+        for (let record of records) {
+            if (start <= record.end && end >= record.start) {
+                return `Conflit avec l'intervalle ${record.start}-${record.end} (généré le ${new Date(record.date).toLocaleDateString('fr-FR')})`;
+            }
         }
+        return null;
+    } catch (err) {
+        console.error("Error checking duplicates:", err);
+        return null; // Allow generation if check fails (rather than block)
     }
-    return null;
+}
+
+function updateSyncStatus(status) {
+    if (!syncStatus) return;
+    switch (status) {
+        case 'loading':
+            syncStatus.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Synchronisation...';
+            syncStatus.style.color = '#64748b';
+            break;
+        case 'synced':
+            syncStatus.innerHTML = '<i class="bi bi-cloud-check"></i> Synchronisé';
+            syncStatus.style.color = '#16a34a';
+            break;
+        case 'saved':
+            syncStatus.innerHTML = '<i class="bi bi-cloud-arrow-up"></i> Sauvegardé';
+            syncStatus.style.color = '#0ea5e9';
+            break;
+        case 'error':
+            syncStatus.innerHTML = '<i class="bi bi-cloud-slash"></i> Erreur Sync';
+            syncStatus.style.color = '#ef4444';
+            break;
+    }
 }
 
 // 3. Export History
-document.getElementById('exportHistoryBtn').addEventListener('click', () => {
-    const history = getHistory();
+document.getElementById('exportHistoryBtn').addEventListener('click', async () => {
+    const history = await getHistory();
     if (!history.length) {
         alert("Aucun historique à exporter.");
         return;
@@ -125,7 +183,6 @@ form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if (isGenerating) return;
 
-    // Get Values
     const communeCode = communeSelect.value;
     const communeName = communeSelect.options[communeSelect.selectedIndex].dataset.name;
     const start = parseInt(document.getElementById('intervalStart').value);
@@ -133,13 +190,14 @@ form.addEventListener('submit', async (e) => {
     const count = end - start + 1;
     const mode = document.querySelector('input[name="mode"]:checked').value;
 
-    // Validate
     if (!communeCode || isNaN(start) || isNaN(end) || start > end) {
         alert("Veuillez vérifier les champs.");
         return;
     }
 
-    const conflict = checkDuplicate(communeCode, start, end);
+    // Check duplicate in Firestore
+    progressStatus.textContent = "Vérification des doublons...";
+    const conflict = await checkDuplicate(communeCode, start, end);
     if (conflict) {
         alert("Erreur de duplication !\n" + conflict);
         return;
@@ -148,7 +206,7 @@ form.addEventListener('submit', async (e) => {
     // Start UI
     isGenerating = true;
     generateBtn.disabled = true;
-    generateBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Traitement...';
+    generateBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Traitement...';
     progressSection.classList.remove('hidden');
     resultSection.classList.add('hidden');
     progressBar.style.width = '0%';
@@ -158,20 +216,16 @@ form.addEventListener('submit', async (e) => {
     try {
         const qrImages = [];
 
-        // Loop Generation
         for (let i = 0; i < count; i++) {
             const currentId = start + i;
             const fullId = `${communeCode}${currentId}`;
 
-            // Update UI
             progressStatus.textContent = `Génération du QR Code pour ID: ${currentId}`;
             progressCount.textContent = `${i + 1} / ${count}`;
             progressBar.style.width = `${((i + 1) / count) * 100}%`;
 
-            // Wait for UI render
             await new Promise(r => setTimeout(r, 0));
 
-            // Generate QR
             const base64Img = await generateQRCode(fullId);
             qrImages.push({
                 id: currentId,
@@ -180,9 +234,8 @@ form.addEventListener('submit', async (e) => {
             });
         }
 
-        // Finalize (ZIP or PDF)
         progressStatus.textContent = mode === 'individual' ? "Création de l'archive ZIP..." : "Génération du PDF...";
-        await new Promise(r => setTimeout(r, 100)); // UI Breath
+        await new Promise(r => setTimeout(r, 100));
 
         if (mode === 'individual') {
             await createZip(qrImages, communeName);
@@ -190,7 +243,7 @@ form.addEventListener('submit', async (e) => {
             await createPdf(qrImages, communeName);
         }
 
-        // Success
+        // Save to Firestore
         const record = {
             date: new Date().toISOString(),
             communeCode,
@@ -200,7 +253,7 @@ form.addEventListener('submit', async (e) => {
             count,
             mode
         };
-        saveToHistory(record);
+        await saveToHistory(record);
 
         progressSection.classList.add('hidden');
         resultSection.classList.remove('hidden');
@@ -212,7 +265,7 @@ form.addEventListener('submit', async (e) => {
     } finally {
         isGenerating = false;
         generateBtn.disabled = false;
-        generateBtn.innerHTML = '<i class="fa-solid fa-bolt"></i> Lancer la Génération';
+        generateBtn.innerHTML = '<i class="bi bi-lightning-charge-fill"></i> Lancer la Génération';
     }
 });
 
@@ -221,28 +274,23 @@ function generateQRCode(text) {
     return new Promise((resolve, reject) => {
         qrContainer.innerHTML = '';
 
-        // Use QRCode.js library
-        // We render to a hidden div, then get the canvas
-        // Note: QRCode.js puts a canvas inside the container
         new QRCode(qrContainer, {
             text: text,
-            width: 1000, // High res for print
+            width: 1000,
             height: 1000,
             correctLevel: QRCode.CorrectLevel.H
         });
 
-        // Wait for canvas to be drawn
         setTimeout(() => {
             const canvas = qrContainer.querySelector('canvas');
             if (canvas) {
                 resolve(canvas.toDataURL("image/png"));
             } else {
-                // Fallback for img tag (some browsers/versions)
                 const img = qrContainer.querySelector('img');
                 if (img) resolve(img.src);
                 else reject("QR generation failed");
             }
-        }, 50); // Small delay for library to render
+        }, 50);
     });
 }
 
@@ -252,7 +300,6 @@ async function createZip(images, communeName) {
     const folder = zip.folder(`QR_${communeName}`);
 
     images.forEach(img => {
-        // Strip base64 prefix
         const data = img.data.split(',')[1];
         folder.file(`${img.fullId}.png`, data, { base64: true });
     });
@@ -273,18 +320,15 @@ async function createPdf(images, communeName) {
         format: 'a4'
     });
 
-    // A4: 210 x 297 mm
     const pageWidth = 210;
     const pageHeight = 297;
     const margin = 10;
     const cols = 3;
-    const rows = 4; // 12 per page
+    const rows = 4;
 
-    // Card dimensions
     const cardWidth = 60;
     const cardHeight = 70;
 
-    // Gaps
     const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / (cols - 1);
     const yGap = (pageHeight - (margin * 2) - (rows * cardHeight)) / (rows - 1);
 
@@ -294,7 +338,6 @@ async function createPdf(images, communeName) {
     let row = 0;
 
     for (let i = 0; i < images.length; i++) {
-        // Add Page if full
         if (i > 0 && i % (cols * rows) === 0) {
             doc.addPage();
             col = 0;
@@ -303,42 +346,30 @@ async function createPdf(images, communeName) {
             y = margin;
         }
 
-        // Draw Card Border (Optional, maybe lighter)
         doc.setDrawColor(200);
         doc.rect(x, y, cardWidth, cardHeight);
 
-        // --- Content ---
-
-        // 1. Logo Left (PROCASEF/Banque Mondiale)
-        // Since we are client side, we rely on checking if images exist. 
-        // For now, let's use text header if logos aren't pre-loaded base64.
-        // Or simpler: Text Header "PROCASEF"
         doc.setFontSize(8);
-        doc.setTextColor(30, 58, 138); // Navy
+        doc.setTextColor(30, 58, 138);
         doc.text("PROCASEF", x + cardWidth / 2, y + 5, { align: 'center' });
 
-        // 2. QR Code (Centered)
-        // QR is 40x40mm
         doc.addImage(images[i].data, 'PNG', x + 10, y + 10, 40, 40);
 
-        // 3. Commune Name
         doc.setFontSize(10);
         doc.setTextColor(0);
         doc.text(communeName, x + cardWidth / 2, y + 55, { align: 'center' });
 
-        // 4. ID (Bold)
         doc.setFontSize(12);
         doc.setFont(undefined, 'bold');
         doc.text(images[i].fullId, x + cardWidth / 2, y + 62, { align: 'center' });
 
-        // Move Position
         col++;
         x += cardWidth + xGap;
         if (col >= cols) {
             col = 0;
             x = margin;
             row++;
-            y += cardHeight + yGap; // Use calculated yGap to spread vertically
+            y += cardHeight + yGap;
         }
     }
 
@@ -350,7 +381,6 @@ async function createPdf(images, communeName) {
 }
 
 function setupDownload() {
-    // Setup the main 'Download' button action
     downloadBtn.onclick = () => {
         const link = document.createElement('a');
         link.href = currentDownloadUrl;
