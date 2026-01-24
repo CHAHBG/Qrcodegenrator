@@ -540,17 +540,20 @@ async function createPdf(images, communeName) {
     // A4 Landscape: 297 x 210 mm
     const pageWidth = 297;
     const pageHeight = 210;
-    const margin = 10;
+    const margin = 12;
     const cols = 4;  // 4 columns
     const rows = 2;  // 2 rows = 8 per page
     const cardsPerPage = cols * rows;
 
-    // Card dimensions to fit nicely
-    const cardWidth = 65;
-    const cardHeight = 90;
+    // Card dimensions - keep original ratio (550x850 = 0.647)
+    // Target height ~85mm, width = 85 * 0.647 = ~55mm
+    const cardWidth = 55;
+    const cardHeight = 85;
+    const cutMarkLength = 5;  // Length of cutting marks
 
-    const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / Math.max(1, cols - 1);
-    const yGap = (pageHeight - (margin * 2) - 10 - (rows * cardHeight)) / Math.max(1, rows - 1);  // -10 for footer
+    // Calculate gaps (spacing for cutting)
+    const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / (cols - 1);
+    const yGap = (pageHeight - (margin * 2) - 10 - (rows * cardHeight));  // -10 for footer
 
     let x = margin;
     let y = margin;
@@ -560,7 +563,6 @@ async function createPdf(images, communeName) {
 
     for (let i = 0; i < images.length; i++) {
         if (i > 0 && i % cardsPerPage === 0) {
-            // Add page number footer before new page
             addPageFooter(doc, currentPage, totalPages, pageWidth, pageHeight);
             doc.addPage();
             currentPage++;
@@ -569,6 +571,10 @@ async function createPdf(images, communeName) {
             y = margin;
         }
 
+        // Draw cutting marks at corners
+        drawCuttingMarks(doc, x, y, cardWidth, cardHeight, cutMarkLength);
+
+        // Add card image
         doc.addImage(images[i].data, 'PNG', x, y, cardWidth, cardHeight);
 
         col++;
@@ -588,6 +594,28 @@ async function createPdf(images, communeName) {
     currentDownloadName = `Planche_QR_${communeName}.pdf`;
 
     setupDownload();
+}
+
+// Helper: Draw cutting marks at card corners
+function drawCuttingMarks(doc, x, y, width, height, markLength) {
+    doc.setDrawColor(150);  // Gray color
+    doc.setLineWidth(0.3);
+
+    // Top-left corner
+    doc.line(x - markLength, y, x - 1, y);  // Horizontal
+    doc.line(x, y - markLength, x, y - 1);  // Vertical
+
+    // Top-right corner
+    doc.line(x + width + 1, y, x + width + markLength, y);
+    doc.line(x + width, y - markLength, x + width, y - 1);
+
+    // Bottom-left corner
+    doc.line(x - markLength, y + height, x - 1, y + height);
+    doc.line(x, y + height + 1, x, y + height + markLength);
+
+    // Bottom-right corner
+    doc.line(x + width + 1, y + height, x + width + markLength, y + height);
+    doc.line(x + width, y + height + 1, x + width, y + height + markLength);
 }
 
 // Helper: Add page footer
