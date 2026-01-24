@@ -358,15 +358,6 @@ async function renderQRCard(fullId, communeName) {
         ctx.fillText('BANQUE MONDIALE', 30, logoY + 35);
     }
 
-    // Center: PROCASEF text (single line, no overlap)
-    ctx.fillStyle = '#1e3a8a';
-    ctx.font = 'bold 22px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('PROCASEF', cardWidth / 2, logoY + 30);
-    ctx.font = '10px Inter, sans-serif';
-    ctx.fillStyle = '#64748b';
-    ctx.fillText('PROJET CADASTRE ET SÉCURISATION FONCIÈRE', cardWidth / 2, logoY + 48);
-
     // Right: BetPlus (or text fallback)
     if (logoCache.betplus) {
         const img = await loadImage(logoCache.betplus);
@@ -537,34 +528,42 @@ async function createZip(images, communeName) {
     setupDownload();
 }
 
-// Helper: Create PDF with card images
+// Helper: Create PDF with card images - A4 Landscape, 8 per page
 async function createPdf(images, communeName) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
-        orientation: 'p',
+        orientation: 'l',  // Landscape
         unit: 'mm',
         format: 'a4'
     });
 
-    const pageWidth = 210;
-    const pageHeight = 297;
+    // A4 Landscape: 297 x 210 mm
+    const pageWidth = 297;
+    const pageHeight = 210;
     const margin = 10;
-    const cols = 3;
-    const rows = 3; // 9 per page for larger cards
+    const cols = 4;  // 4 columns
+    const rows = 2;  // 2 rows = 8 per page
+    const cardsPerPage = cols * rows;
 
-    const cardWidth = 60;
+    // Card dimensions to fit nicely
+    const cardWidth = 65;
     const cardHeight = 90;
 
     const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / Math.max(1, cols - 1);
-    const yGap = (pageHeight - (margin * 2) - (rows * cardHeight)) / Math.max(1, rows - 1);
+    const yGap = (pageHeight - (margin * 2) - 10 - (rows * cardHeight)) / Math.max(1, rows - 1);  // -10 for footer
 
     let x = margin;
     let y = margin;
     let col = 0;
+    let currentPage = 1;
+    const totalPages = Math.ceil(images.length / cardsPerPage);
 
     for (let i = 0; i < images.length; i++) {
-        if (i > 0 && i % (cols * rows) === 0) {
+        if (i > 0 && i % cardsPerPage === 0) {
+            // Add page number footer before new page
+            addPageFooter(doc, currentPage, totalPages, pageWidth, pageHeight);
             doc.addPage();
+            currentPage++;
             col = 0;
             x = margin;
             y = margin;
@@ -581,11 +580,21 @@ async function createPdf(images, communeName) {
         }
     }
 
+    // Add footer to last page
+    addPageFooter(doc, currentPage, totalPages, pageWidth, pageHeight);
+
     const blob = doc.output('blob');
     currentDownloadUrl = URL.createObjectURL(blob);
     currentDownloadName = `Planche_QR_${communeName}.pdf`;
 
     setupDownload();
+}
+
+// Helper: Add page footer
+function addPageFooter(doc, currentPage, totalPages, pageWidth, pageHeight) {
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text(`Page ${currentPage} / ${totalPages}`, pageWidth / 2, pageHeight - 5, { align: 'center' });
 }
 
 function setupDownload() {
