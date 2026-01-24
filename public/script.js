@@ -17,6 +17,44 @@ let isGenerating = false;
 let currentDownloadUrl = null;
 let currentDownloadName = '';
 
+// Logo base64 cache
+let logoCache = {
+    banqueMondiale: null,
+    betplus: null
+};
+
+// Preload logos on init
+async function preloadLogos() {
+    try {
+        const [bm, bp] = await Promise.all([
+            loadImageAsBase64('./assets/banque_mondiale.jpg'),
+            loadImageAsBase64('./assets/betplus.jpg')
+        ]);
+        logoCache.banqueMondiale = bm;
+        logoCache.betplus = bp;
+        console.log('Logos preloaded successfully');
+    } catch (err) {
+        console.warn('Could not preload logos:', err);
+    }
+}
+
+function loadImageAsBase64(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0);
+            resolve(canvas.toDataURL('image/jpeg'));
+        };
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
 // Wait for Firebase to be ready
 function waitForFirebase() {
     return new Promise((resolve) => {
@@ -31,6 +69,7 @@ function waitForFirebase() {
 // Load Data on Init
 document.addEventListener('DOMContentLoaded', async () => {
     loadCommunes();
+    preloadLogos();
     await waitForFirebase();
     loadHistory();
 });
@@ -41,13 +80,11 @@ async function loadCommunes() {
         const response = await fetch('./communes.json');
         const communes = await response.json();
 
-        // Sort alphabetically by name
         communes.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
         communeSelect.innerHTML = '<option value="" disabled selected>Choisir une commune...</option>';
         communes.forEach(c => {
             const option = document.createElement('option');
-            // communes.json uses "code" and "name" keys
             option.value = c.code;
             option.textContent = c.name;
             option.dataset.name = c.name;
@@ -133,7 +170,7 @@ async function checkDuplicate(communeCode, start, end) {
         return null;
     } catch (err) {
         console.error("Error checking duplicates:", err);
-        return null; // Allow generation if check fails (rather than block)
+        return null;
     }
 }
 
@@ -197,7 +234,6 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Check duplicate in Firestore
     progressStatus.textContent = "Vérification des doublons...";
     const conflict = await checkDuplicate(communeCode, start, end);
     if (conflict) {
@@ -205,7 +241,6 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    // Start UI
     isGenerating = true;
     generateBtn.disabled = true;
     generateBtn.innerHTML = '<i class="bi bi-arrow-repeat spin"></i> Traitement...';
@@ -216,23 +251,24 @@ form.addEventListener('submit', async (e) => {
     progressStatus.textContent = "Initialisation...";
 
     try {
-        const qrImages = [];
+        const cardImages = [];
 
         for (let i = 0; i < count; i++) {
             const currentId = start + i;
             const fullId = `${communeCode}${currentId}`;
 
-            progressStatus.textContent = `Génération du QR Code pour ID: ${currentId}`;
+            progressStatus.textContent = `Génération de la carte QR: ${fullId}`;
             progressCount.textContent = `${i + 1} / ${count}`;
             progressBar.style.width = `${((i + 1) / count) * 100}%`;
 
             await new Promise(r => setTimeout(r, 0));
 
-            const base64Img = await generateQRCode(fullId);
-            qrImages.push({
+            // Generate the full card image
+            const cardData = await renderQRCard(fullId, communeName);
+            cardImages.push({
                 id: currentId,
                 fullId: fullId,
-                data: base64Img
+                data: cardData
             });
         }
 
@@ -240,12 +276,11 @@ form.addEventListener('submit', async (e) => {
         await new Promise(r => setTimeout(r, 100));
 
         if (mode === 'individual') {
-            await createZip(qrImages, communeName);
+            await createZip(cardImages, communeName);
         } else {
-            await createPdf(qrImages, communeName);
+            await createPdf(cardImages, communeName);
         }
 
-        // Save to Firestore
         const record = {
             date: new Date().toISOString(),
             communeCode,
@@ -271,15 +306,173 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// Helper: Generate QR Base64
-function generateQRCode(text) {
+// =============================================
+// RENDER QR CARD - Full styled card with logos
+// =============================================
+async function renderQRCard(fullId, communeName) {
+    // Card dimensions (similar to original ~55x85mm ratio)
+    const cardWidth = 550;
+    const cardHeight = 850;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = cardWidth;
+    canvas.height = cardHeight;
+    const ctx = canvas.getContext('2d');
+
+    // Background
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, cardWidth, cardHeight);
+
+    // Border
+    ctx.strokeStyle = '#e5e7eb';
+    ctx.lineWidth = 2;
+    ctx.roundRect(5, 5, cardWidth - 10, cardHeight - 10, 20);
+    ctx.stroke();
+
+    // === HEADER LOGOS ===
+    const logoY = 30;
+    const logoHeight = 60;
+
+    // Left: Banque Mondiale (or text fallback)
+    if (logoCache.banqueMondiale) {
+        const img = await loadImage(logoCache.banqueMondiale);
+        const ratio = img.width / img.height;
+        ctx.drawImage(img, 30, logoY, logoHeight * ratio, logoHeight);
+    } else {
+        ctx.fillStyle = '#1e3a8a';
+        ctx.font = 'bold 14px Inter, sans-serif';
+        ctx.fillText('BANQUE MONDIALE', 30, logoY + 35);
+    }
+
+    // Center: PROCASEF text
+    ctx.fillStyle = '#1e3a8a';
+    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('PROCASEF', cardWidth / 2, logoY + 40);
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillStyle = '#64748b';
+    ctx.fillText('PROJET CADASTRE ET SÉCURISATION FONCIÈRE', cardWidth / 2, logoY + 58);
+
+    // Right: BetPlus (or text fallback)
+    if (logoCache.betplus) {
+        const img = await loadImage(logoCache.betplus);
+        const ratio = img.width / img.height;
+        ctx.drawImage(img, cardWidth - 30 - logoHeight * ratio, logoY, logoHeight * ratio, logoHeight);
+    }
+
+    ctx.textAlign = 'left';
+
+    // === COMMUNE BANNER ===
+    const bannerY = 120;
+    const bannerHeight = 50;
+    ctx.fillStyle = '#1e3a8a';
+    roundRect(ctx, 40, bannerY, cardWidth - 80, bannerHeight, 10);
+    ctx.fill();
+
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 24px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(communeName.toUpperCase(), cardWidth / 2, bannerY + 33);
+    ctx.textAlign = 'left';
+
+    // === PRÉNOM / NOM FIELDS ===
+    const fieldY1 = 195;
+    const fieldY2 = 280;
+    const fieldHeight = 65;
+
+    // Prénom field
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 40, fieldY1, cardWidth - 80, fieldHeight, 8);
+    ctx.stroke();
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('Prénom :', 60, fieldY1 + 38);
+
+    // Nom field
+    roundRect(ctx, 40, fieldY2, cardWidth - 80, fieldHeight, 8);
+    ctx.stroke();
+    ctx.fillText('Nom :', 60, fieldY2 + 38);
+
+    // === QR CODE ===
+    const qrSize = 280;
+    const qrX = (cardWidth - qrSize) / 2;
+    const qrY = 380;
+
+    // Generate raw QR code
+    const qrBase64 = await generateQRCodeRaw(fullId, qrSize);
+    const qrImg = await loadImage(qrBase64);
+    ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
+
+    // Overlay center logo on QR (BetPlus)
+    if (logoCache.betplus) {
+        const centerLogoSize = 60;
+        const centerLogoX = qrX + (qrSize - centerLogoSize) / 2;
+        const centerLogoY = qrY + (qrSize - centerLogoSize) / 2;
+
+        // White circle background
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.arc(centerLogoX + centerLogoSize / 2, centerLogoY + centerLogoSize / 2, centerLogoSize / 2 + 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        const centerImg = await loadImage(logoCache.betplus);
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(centerLogoX + centerLogoSize / 2, centerLogoY + centerLogoSize / 2, centerLogoSize / 2, 0, Math.PI * 2);
+        ctx.clip();
+        ctx.drawImage(centerImg, centerLogoX, centerLogoY, centerLogoSize, centerLogoSize);
+        ctx.restore();
+    }
+
+    // === ID TEXT ===
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 32px Inter, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`ID: ${fullId}`, cardWidth / 2, 710);
+
+    // === FOOTER ===
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '16px Inter, sans-serif';
+    ctx.fillText('Généré par BETPLUSAUDETAG', cardWidth / 2, 760);
+
+    return canvas.toDataURL('image/png');
+}
+
+// Helper: Load image from base64
+function loadImage(src) {
+    return new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+    });
+}
+
+// Helper: Draw rounded rectangle
+function roundRect(ctx, x, y, width, height, radius) {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+}
+
+// Helper: Generate raw QR code (no styling)
+function generateQRCodeRaw(text, size) {
     return new Promise((resolve, reject) => {
         qrContainer.innerHTML = '';
 
         new QRCode(qrContainer, {
             text: text,
-            width: 1000,
-            height: 1000,
+            width: size,
+            height: size,
             correctLevel: QRCode.CorrectLevel.H
         });
 
@@ -296,7 +489,7 @@ function generateQRCode(text) {
     });
 }
 
-// Helper: Create ZIP
+// Helper: Create ZIP with card images
 async function createZip(images, communeName) {
     const zip = new JSZip();
     const folder = zip.folder(`QR_${communeName}`);
@@ -313,7 +506,7 @@ async function createZip(images, communeName) {
     setupDownload();
 }
 
-// Helper: Create PDF
+// Helper: Create PDF with card images
 async function createPdf(images, communeName) {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF({
@@ -326,51 +519,33 @@ async function createPdf(images, communeName) {
     const pageHeight = 297;
     const margin = 10;
     const cols = 3;
-    const rows = 4;
+    const rows = 3; // 9 per page for larger cards
 
     const cardWidth = 60;
-    const cardHeight = 70;
+    const cardHeight = 90;
 
-    const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / (cols - 1);
-    const yGap = (pageHeight - (margin * 2) - (rows * cardHeight)) / (rows - 1);
+    const xGap = (pageWidth - (margin * 2) - (cols * cardWidth)) / Math.max(1, cols - 1);
+    const yGap = (pageHeight - (margin * 2) - (rows * cardHeight)) / Math.max(1, rows - 1);
 
     let x = margin;
     let y = margin;
     let col = 0;
-    let row = 0;
 
     for (let i = 0; i < images.length; i++) {
         if (i > 0 && i % (cols * rows) === 0) {
             doc.addPage();
             col = 0;
-            row = 0;
             x = margin;
             y = margin;
         }
 
-        doc.setDrawColor(200);
-        doc.rect(x, y, cardWidth, cardHeight);
-
-        doc.setFontSize(8);
-        doc.setTextColor(30, 58, 138);
-        doc.text("PROCASEF", x + cardWidth / 2, y + 5, { align: 'center' });
-
-        doc.addImage(images[i].data, 'PNG', x + 10, y + 10, 40, 40);
-
-        doc.setFontSize(10);
-        doc.setTextColor(0);
-        doc.text(communeName, x + cardWidth / 2, y + 55, { align: 'center' });
-
-        doc.setFontSize(12);
-        doc.setFont(undefined, 'bold');
-        doc.text(images[i].fullId, x + cardWidth / 2, y + 62, { align: 'center' });
+        doc.addImage(images[i].data, 'PNG', x, y, cardWidth, cardHeight);
 
         col++;
         x += cardWidth + xGap;
         if (col >= cols) {
             col = 0;
             x = margin;
-            row++;
             y += cardHeight + yGap;
         }
     }
