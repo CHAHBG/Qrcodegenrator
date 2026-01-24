@@ -50,7 +50,7 @@
     </script>
 
     <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qr-code-styling@1.5.0/lib/qr-code-styling.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
@@ -100,12 +100,12 @@
 
                     <div class="form-group">
                         <label><i class="bi bi-arrow-right-circle"></i> Début</label>
-                        <input type="number" id="intervalStart" placeholder="ex: 70000" min="1" required>
+                        <input type="number" id="intervalStart" placeholder="ex: 1" min="1" max="99999" required>
                     </div>
 
                     <div class="form-group">
                         <label><i class="bi bi-arrow-left-circle"></i> Fin</label>
-                        <input type="number" id="intervalEnd" placeholder="ex: 75000" min="1" required>
+                        <input type="number" id="intervalEnd" placeholder="ex: 99999" min="1" max="99999" required>
                     </div>
                 </div>
 

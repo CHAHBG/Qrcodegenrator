@@ -229,8 +229,20 @@ form.addEventListener('submit', async (e) => {
     const count = end - start + 1;
     const mode = document.querySelector('input[name="mode"]:checked').value;
 
+    // Validation
     if (!communeCode || isNaN(start) || isNaN(end) || start > end) {
         alert("Veuillez vérifier les champs.");
+        return;
+    }
+
+    // Max interval validation
+    if (start > 99999 || end > 99999) {
+        alert("L'intervalle maximum est 99999.");
+        return;
+    }
+
+    if (start < 1) {
+        alert("L'intervalle minimum est 1.");
         return;
     }
 
@@ -255,7 +267,9 @@ form.addEventListener('submit', async (e) => {
 
         for (let i = 0; i < count; i++) {
             const currentId = start + i;
-            const fullId = `${communeCode}${currentId}`;
+            // Pad interval to 5 digits: 24 -> 00024
+            const paddedId = String(currentId).padStart(5, '0');
+            const fullId = `${communeCode}${paddedId}`;
 
             progressStatus.textContent = `Génération de la carte QR: ${fullId}`;
             progressCount.textContent = `${i + 1} / ${count}`;
@@ -344,14 +358,14 @@ async function renderQRCard(fullId, communeName) {
         ctx.fillText('BANQUE MONDIALE', 30, logoY + 35);
     }
 
-    // Center: PROCASEF text
+    // Center: PROCASEF text (single line, no overlap)
     ctx.fillStyle = '#1e3a8a';
-    ctx.font = 'bold 28px Inter, sans-serif';
+    ctx.font = 'bold 22px Inter, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('PROCASEF', cardWidth / 2, logoY + 40);
-    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('PROCASEF', cardWidth / 2, logoY + 30);
+    ctx.font = '10px Inter, sans-serif';
     ctx.fillStyle = '#64748b';
-    ctx.fillText('PROJET CADASTRE ET SÉCURISATION FONCIÈRE', cardWidth / 2, logoY + 58);
+    ctx.fillText('PROJET CADASTRE ET SÉCURISATION FONCIÈRE', cardWidth / 2, logoY + 48);
 
     // Right: BetPlus (or text fallback)
     if (logoCache.betplus) {
@@ -464,28 +478,45 @@ function roundRect(ctx, x, y, width, height, radius) {
     ctx.closePath();
 }
 
-// Helper: Generate raw QR code (no styling)
+// Helper: Generate styled QR code with rounded dots
 function generateQRCodeRaw(text, size) {
     return new Promise((resolve, reject) => {
-        qrContainer.innerHTML = '';
+        try {
+            const qrCode = new QRCodeStyling({
+                width: size,
+                height: size,
+                data: text,
+                dotsOptions: {
+                    type: "rounded",  // Rounded dots like the original
+                    color: "#000000"
+                },
+                cornersSquareOptions: {
+                    type: "extra-rounded",
+                    color: "#000000"
+                },
+                cornersDotOptions: {
+                    type: "dot",
+                    color: "#000000"
+                },
+                backgroundOptions: {
+                    color: "#ffffff"
+                },
+                qrOptions: {
+                    errorCorrectionLevel: "H"
+                }
+            });
 
-        new QRCode(qrContainer, {
-            text: text,
-            width: size,
-            height: size,
-            correctLevel: QRCode.CorrectLevel.H
-        });
-
-        setTimeout(() => {
-            const canvas = qrContainer.querySelector('canvas');
-            if (canvas) {
-                resolve(canvas.toDataURL("image/png"));
-            } else {
-                const img = qrContainer.querySelector('img');
-                if (img) resolve(img.src);
-                else reject("QR generation failed");
-            }
-        }, 50);
+            qrCode.getRawData("png").then(blob => {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    resolve(reader.result);
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(blob);
+            }).catch(reject);
+        } catch (err) {
+            reject(err);
+        }
     });
 }
 
