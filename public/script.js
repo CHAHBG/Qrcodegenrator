@@ -246,6 +246,12 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
+    // PDF mode limit validation (max 2500 QR codes for PDF)
+    if (mode === 'print' && count > 2500) {
+        alert("Le mode PDF est limité à 2500 QR codes maximum.\nVeuillez réduire l'intervalle ou utiliser le mode ZIP pour de plus grands volumes.");
+        return;
+    }
+
     progressStatus.textContent = "Vérification des doublons...";
     const conflict = await checkDuplicate(communeCode, start, end);
     if (conflict) {
