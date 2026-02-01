@@ -246,9 +246,9 @@ form.addEventListener('submit', async (e) => {
         return;
     }
 
-    // PDF mode limit validation (max 500 QR codes for PDF to prevent browser crash)
-    if (mode === 'print' && count > 500) {
-        alert("Le mode PDF est limité à 500 QR codes maximum pour éviter les problèmes de mémoire.\nVeuillez réduire l'intervalle ou utiliser le mode ZIP pour de plus grands volumes.");
+    // PDF mode limit validation (max 100 QR codes for PDF to prevent browser crash)
+    if (mode === 'print' && count > 100) {
+        alert("Le mode PDF est limité à 100 QR codes maximum pour éviter les problèmes de mémoire.\nPour de plus grands volumes, veuillez utiliser le mode ZIP (Individuel).");
         return;
     }
 
@@ -331,8 +331,9 @@ form.addEventListener('submit', async (e) => {
 // =============================================
 async function renderQRCard(fullId, communeName) {
     // Card dimensions (similar to original ~55x85mm ratio)
-    const cardWidth = 550;
-    const cardHeight = 850;
+    // Reduced for PDF mode to save memory
+    const cardWidth = 400;
+    const cardHeight = 618;
 
     const canvas = document.createElement('canvas');
     canvas.width = cardWidth;
@@ -447,6 +448,11 @@ async function renderQRCard(fullId, communeName) {
     ctx.font = '16px Inter, sans-serif';
     ctx.fillText('Généré par BETPLUSAUDETAG', cardWidth / 2, 760);
 
+    // Use JPEG with compression for PDF mode to reduce memory
+    const mode = document.querySelector('input[name="mode"]:checked').value;
+    if (mode === 'print') {
+        return canvas.toDataURL('image/jpeg', 0.85);
+    }
     return canvas.toDataURL('image/png');
 }
 
@@ -580,8 +586,9 @@ async function createPdf(images, communeName) {
         // Draw cutting marks at corners
         drawCuttingMarks(doc, x, y, cardWidth, cardHeight, cutMarkLength);
 
-        // Add card image
-        doc.addImage(images[i].data, 'PNG', x, y, cardWidth, cardHeight);
+        // Add card image (use JPEG for smaller file size)
+        const format = images[i].data.includes('image/jpeg') ? 'JPEG' : 'PNG';
+        doc.addImage(images[i].data, format, x, y, cardWidth, cardHeight);
 
         col++;
         x += cardWidth + xGap;
